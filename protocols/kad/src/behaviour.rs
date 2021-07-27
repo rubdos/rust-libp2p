@@ -1531,17 +1531,27 @@ where
             // The record is cloned because of the weird libp2p protocol
             // requirement to send back the value in the response, although this
             // is a waste of resources.
-            match self.store.put(record.clone()) {
-                Ok(()) => debug!("Record stored: {:?}; {} bytes", record.key, record.value.len()),
-                Err(e) => {
-                    info!("Record not stored: {:?}", e);
-                    self.queued_events.push_back(NetworkBehaviourAction::NotifyHandler {
-                        peer_id: source,
-                        handler: NotifyHandler::One(connection),
-                        event: KademliaHandlerIn::Reset(request_id)
-                    });
+            if self.record_filtering != KademliaRecordFiltering::Unfiltered {
+                self.queued_events.push_back(NetworkBehaviourAction::GenerateEvent(
+                    KademliaEvent::InboundPutRecordRequest {
+                        source,
+                        connection,
+                        record: record.clone(),
+                    }
+                ));
+            } else {
+                match self.store.put(record.clone()) {
+                    Ok(()) => debug!("Record stored: {:?}; {} bytes", record.key, record.value.len()),
+                    Err(e) => {
+                        info!("Record not stored: {:?}", e);
+                        self.queued_events.push_back(NetworkBehaviourAction::NotifyHandler {
+                            peer_id: source,
+                            handler: NotifyHandler::One(connection),
+                            event: KademliaHandlerIn::Reset(request_id)
+                        });
 
-                    return
+                        return
+                    }
                 }
             }
         }
@@ -1573,7 +1583,13 @@ where
                 expires: self.provider_record_ttl.map(|ttl| Instant::now() + ttl),
                 addresses: provider.multiaddrs,
             };
-            if let Err(e) = self.store.add_provider(record) {
+            if self.record_filtering != KademliaRecordFiltering::Unfiltered {
+                self.queued_events.push_back(NetworkBehaviourAction::GenerateEvent(
+                    KademliaEvent::InboundAddProviderRequest {
+                        record,
+                    }
+                ));
+            } else if let Err(e) = self.store.add_provider(record) {
                 info!("Provider record not stored: {:?}", e);
             }
         }

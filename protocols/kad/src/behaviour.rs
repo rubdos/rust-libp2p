@@ -2233,7 +2233,23 @@ pub enum KademliaEvent {
     PendingRoutablePeer {
         peer: PeerId,
         address: Multiaddr,
-    }
+    },
+
+    /// A peer sent a [`PutRecord`] request and filtering is enabled.
+    ///
+    /// Cfr. [`KademliaRecordFiltering`] and [`KademliaConfig::set_record_filtering`].
+    InboundPutRecordRequest {
+        source: PeerId,
+        connection: ConnectionId,
+        record: Record,
+    },
+
+    /// A peer sent a [`AddProvider`] request and filtering [`KademliaRecordFiltering::FilterBoth`] is enabled.
+    ///
+    /// Cfr. [`KademliaRecordFiltering`] and [`KademliaConfig::set_record_filtering`].
+    InboundAddProviderRequest {
+        record: ProviderRecord,
+    },
 }
 
 /// Information about a received and handled inbound request.

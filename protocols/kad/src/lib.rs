@@ -43,6 +43,7 @@ pub use behaviour::{
     Kademlia,
     KademliaBucketInserts,
     KademliaConfig,
+    KademliaRecordFiltering,
     KademliaCaching,
     KademliaEvent,
     Quorum
